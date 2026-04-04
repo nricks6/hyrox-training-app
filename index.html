@@ -1,0 +1,1356 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Scott">
+  <meta name="theme-color" content="#0a0a0a">
+  <title>Scott</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    html, body {
+      height: 100%;
+      overflow-x: hidden;
+    }
+
+    body {
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #0a0a0a;
+      color: #ededed;
+      line-height: 1.5;
+      padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+    }
+
+    .screen {
+      display: none;
+      min-height: 100vh;
+      padding: 24px 16px;
+      padding-bottom: calc(24px + env(safe-area-inset-bottom));
+    }
+
+    .screen.active {
+      display: block;
+    }
+
+    h1 {
+      font-size: 28px;
+      font-weight: 700;
+      margin-bottom: 8px;
+    }
+
+    h2 {
+      font-size: 20px;
+      font-weight: 600;
+      margin-bottom: 12px;
+      color: #b0b0b0;
+    }
+
+    h3 {
+      font-size: 16px;
+      font-weight: 600;
+      color: #888;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 8px;
+    }
+
+    .btn {
+      display: block;
+      width: 100%;
+      padding: 16px 24px;
+      font-size: 17px;
+      font-weight: 600;
+      border: none;
+      border-radius: 12px;
+      cursor: pointer;
+      text-align: center;
+      min-height: 56px;
+      transition: transform 0.1s, opacity 0.2s;
+    }
+
+    .btn:active {
+      transform: scale(0.98);
+    }
+
+    .btn-primary {
+      background: #1abc9c;
+      color: #0a0a0a;
+    }
+
+    .btn-secondary {
+      background: #1a1a1a;
+      color: #ededed;
+      border: 1px solid #333;
+    }
+
+    .btn:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
+
+    .card {
+      background: #141414;
+      border-radius: 16px;
+      padding: 20px;
+      margin-bottom: 16px;
+    }
+
+    .daily-brief {
+      font-size: 16px;
+      color: #b0b0b0;
+      font-style: italic;
+    }
+
+    .workout-name {
+      font-size: 22px;
+      font-weight: 700;
+      margin-bottom: 4px;
+    }
+
+    .workout-date {
+      font-size: 14px;
+      color: #888;
+    }
+
+    .no-workout {
+      text-align: center;
+      padding: 40px 20px;
+      color: #666;
+    }
+
+    /* Progress indicator */
+    .progress-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 16px;
+      background: #141414;
+      border-radius: 12px;
+      margin-bottom: 20px;
+    }
+
+    .progress-text {
+      font-size: 14px;
+      color: #888;
+    }
+
+    .progress-dots {
+      display: flex;
+      gap: 6px;
+    }
+
+    .progress-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #333;
+    }
+
+    .progress-dot.completed {
+      background: #1abc9c;
+    }
+
+    .progress-dot.current {
+      background: #1abc9c;
+      box-shadow: 0 0 8px #1abc9c;
+    }
+
+    /* Exercise block */
+    .exercise-block {
+      background: #141414;
+      border-radius: 16px;
+      padding: 20px;
+      margin-bottom: 16px;
+    }
+
+    .exercise-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 16px;
+    }
+
+    .exercise-name {
+      font-size: 18px;
+      font-weight: 600;
+    }
+
+    .exercise-target {
+      font-size: 14px;
+      color: #888;
+      margin-top: 2px;
+    }
+
+    .exercise-time {
+      font-size: 13px;
+      color: #1abc9c;
+      font-variant-numeric: tabular-nums;
+    }
+
+    /* Set row */
+    .set-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 12px 0;
+      border-bottom: 1px solid #222;
+    }
+
+    .set-row:last-child {
+      border-bottom: none;
+    }
+
+    .set-number {
+      width: 32px;
+      height: 32px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: #222;
+      border-radius: 50%;
+      font-size: 14px;
+      font-weight: 600;
+      flex-shrink: 0;
+    }
+
+    .set-number.completed {
+      background: #1abc9c;
+      color: #0a0a0a;
+    }
+
+    .set-inputs {
+      flex: 1;
+      display: flex;
+      gap: 8px;
+    }
+
+    .set-input {
+      flex: 1;
+      background: #1a1a1a;
+      border: 1px solid #333;
+      border-radius: 8px;
+      padding: 10px 12px;
+      font-size: 16px;
+      color: #ededed;
+      text-align: center;
+      min-width: 0;
+    }
+
+    .set-input:focus {
+      outline: none;
+      border-color: #1abc9c;
+    }
+
+    .set-input::placeholder {
+      color: #555;
+    }
+
+    .set-input:disabled {
+      opacity: 0.5;
+      background: #111;
+    }
+
+    .set-btn {
+      width: 56px;
+      height: 44px;
+      background: #1abc9c;
+      border: none;
+      border-radius: 8px;
+      color: #0a0a0a;
+      font-weight: 600;
+      font-size: 14px;
+      cursor: pointer;
+      flex-shrink: 0;
+    }
+
+    .set-btn:disabled {
+      background: #333;
+      color: #666;
+      cursor: not-allowed;
+    }
+
+    .set-btn.next {
+      background: #222;
+      color: #1abc9c;
+      border: 1px solid #1abc9c;
+    }
+
+    /* Rest timer */
+    .rest-timer {
+      display: none;
+      text-align: center;
+      padding: 24px;
+      background: #0f1f1c;
+      border-radius: 12px;
+      margin: 16px 0;
+    }
+
+    .rest-timer.active {
+      display: block;
+    }
+
+    .rest-label {
+      font-size: 14px;
+      color: #888;
+      margin-bottom: 8px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    .rest-time {
+      font-size: 64px;
+      font-weight: 700;
+      color: #1abc9c;
+      font-variant-numeric: tabular-nums;
+      line-height: 1;
+      margin-bottom: 16px;
+    }
+
+    /* History */
+    .history-item {
+      background: #141414;
+      border-radius: 12px;
+      padding: 16px;
+      margin-bottom: 12px;
+      cursor: pointer;
+      transition: transform 0.1s;
+    }
+
+    .history-item:active {
+      transform: scale(0.98);
+    }
+
+    .history-name {
+      font-size: 17px;
+      font-weight: 600;
+      margin-bottom: 4px;
+    }
+
+    .history-date {
+      font-size: 14px;
+      color: #888;
+    }
+
+    .history-stats {
+      font-size: 13px;
+      color: #1abc9c;
+      margin-top: 8px;
+    }
+
+    /* Summary */
+    .summary-exercise {
+      background: #141414;
+      border-radius: 12px;
+      padding: 16px;
+      margin-bottom: 12px;
+    }
+
+    .summary-exercise-name {
+      font-size: 16px;
+      font-weight: 600;
+      margin-bottom: 8px;
+    }
+
+    .summary-sets {
+      font-size: 14px;
+      color: #888;
+    }
+
+    .summary-time {
+      font-size: 14px;
+      color: #1abc9c;
+      margin-top: 4px;
+    }
+
+    /* Admin */
+    .admin-field {
+      margin-bottom: 16px;
+    }
+
+    .admin-label {
+      display: block;
+      font-size: 14px;
+      color: #888;
+      margin-bottom: 6px;
+    }
+
+    .admin-input {
+      width: 100%;
+      background: #1a1a1a;
+      border: 1px solid #333;
+      border-radius: 8px;
+      padding: 12px;
+      font-size: 16px;
+      color: #ededed;
+    }
+
+    .admin-input:focus {
+      outline: none;
+      border-color: #1abc9c;
+    }
+
+    .admin-textarea {
+      min-height: 80px;
+      resize: vertical;
+    }
+
+    .admin-select {
+      width: 100%;
+      background: #1a1a1a;
+      border: 1px solid #333;
+      border-radius: 8px;
+      padding: 12px;
+      font-size: 16px;
+      color: #ededed;
+      appearance: none;
+    }
+
+    .exercise-form {
+      background: #1a1a1a;
+      border-radius: 12px;
+      padding: 16px;
+      margin-bottom: 12px;
+    }
+
+    .exercise-form-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 12px;
+    }
+
+    .exercise-form-title {
+      font-size: 14px;
+      font-weight: 600;
+      color: #888;
+    }
+
+    .remove-exercise {
+      background: none;
+      border: none;
+      color: #e74c3c;
+      font-size: 14px;
+      cursor: pointer;
+      padding: 4px 8px;
+    }
+
+    .add-exercise-btn {
+      background: #1a1a1a;
+      border: 1px dashed #333;
+      border-radius: 12px;
+      padding: 16px;
+      width: 100%;
+      color: #888;
+      font-size: 15px;
+      cursor: pointer;
+      margin-bottom: 20px;
+    }
+
+    .add-exercise-btn:active {
+      background: #222;
+    }
+
+    /* Nav */
+    .nav {
+      display: flex;
+      gap: 12px;
+      margin-top: 24px;
+    }
+
+    .nav .btn {
+      flex: 1;
+    }
+
+    .back-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: none;
+      border: none;
+      color: #1abc9c;
+      font-size: 16px;
+      cursor: pointer;
+      padding: 8px 0;
+      margin-bottom: 16px;
+    }
+
+    /* Title with tap counter for admin */
+    .app-title {
+      cursor: default;
+      user-select: none;
+    }
+
+    .spacer {
+      height: 20px;
+    }
+
+    .spacer-lg {
+      height: 32px;
+    }
+  </style>
+</head>
+<body>
+  <!-- Home Screen -->
+  <div id="home-screen" class="screen active">
+    <h1 class="app-title" id="app-title">Scott</h1>
+    <p style="color: #666; font-size: 14px; margin-bottom: 24px;">Your AI Training Partner</p>
+
+    <div id="today-workout">
+      <!-- Populated by JS -->
+    </div>
+
+    <div class="nav">
+      <button class="btn btn-secondary" onclick="showHistory()">History</button>
+    </div>
+  </div>
+
+  <!-- Active Workout Screen -->
+  <div id="workout-screen" class="screen">
+    <button class="back-btn" onclick="confirmExitWorkout()">← Back</button>
+
+    <div id="workout-header">
+      <!-- Populated by JS -->
+    </div>
+
+    <div id="workout-progress" class="progress-bar">
+      <!-- Populated by JS -->
+    </div>
+
+    <div id="exercise-blocks">
+      <!-- Populated by JS -->
+    </div>
+
+    <div class="spacer-lg"></div>
+
+    <button id="finish-workout-btn" class="btn btn-primary" onclick="finishWorkout()" disabled>
+      Finish Workout
+    </button>
+  </div>
+
+  <!-- Workout Complete Screen -->
+  <div id="complete-screen" class="screen">
+    <h1>Workout Complete</h1>
+    <p style="color: #1abc9c; margin-bottom: 24px;">Great work!</p>
+
+    <div id="workout-summary">
+      <!-- Populated by JS -->
+    </div>
+
+    <div class="spacer-lg"></div>
+
+    <button class="btn btn-primary" onclick="saveAndReturn()">Save & Return Home</button>
+  </div>
+
+  <!-- History Screen -->
+  <div id="history-screen" class="screen">
+    <button class="back-btn" onclick="showHome()">← Back</button>
+    <h1>History</h1>
+    <div class="spacer"></div>
+
+    <div id="history-list">
+      <!-- Populated by JS -->
+    </div>
+  </div>
+
+  <!-- History Detail Screen -->
+  <div id="history-detail-screen" class="screen">
+    <button class="back-btn" onclick="showHistory()">← Back</button>
+
+    <div id="history-detail">
+      <!-- Populated by JS -->
+    </div>
+  </div>
+
+  <!-- Admin Screen -->
+  <div id="admin-screen" class="screen">
+    <button class="back-btn" onclick="showHome()">← Back</button>
+    <h1>Admin Mode</h1>
+    <p style="color: #666; font-size: 14px; margin-bottom: 24px;">Set tomorrow's workout</p>
+
+    <div class="admin-field">
+      <label class="admin-label">Workout Date</label>
+      <input type="date" id="admin-date" class="admin-input">
+    </div>
+
+    <div class="admin-field">
+      <label class="admin-label">Workout Name</label>
+      <input type="text" id="admin-name" class="admin-input" placeholder="e.g., Push Day">
+    </div>
+
+    <div class="admin-field">
+      <label class="admin-label">Daily Brief</label>
+      <textarea id="admin-brief" class="admin-input admin-textarea" placeholder="e.g., Recovery looking good. Push it today."></textarea>
+    </div>
+
+    <h3 style="margin-top: 24px;">Exercises</h3>
+    <div id="admin-exercises">
+      <!-- Populated by JS -->
+    </div>
+
+    <button class="add-exercise-btn" onclick="addExerciseForm()">+ Add Exercise</button>
+
+    <button class="btn btn-primary" onclick="saveAdminWorkout()">Save Workout</button>
+
+    <div class="spacer-lg"></div>
+  </div>
+
+  <script>
+    // ===== Data Management =====
+    const STORAGE_KEY = 'scott_training_data';
+
+    function getData() {
+      const stored = localStorage.getItem(STORAGE_KEY);
+      if (stored) {
+        return JSON.parse(stored);
+      }
+      return { workouts: {}, completedWorkouts: [] };
+    }
+
+    function saveData(data) {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+    }
+
+    function getTodayKey() {
+      return new Date().toISOString().split('T')[0];
+    }
+
+    function formatDate(dateStr) {
+      const date = new Date(dateStr + 'T12:00:00');
+      return date.toLocaleDateString('en-US', {
+        weekday: 'long',
+        month: 'short',
+        day: 'numeric'
+      });
+    }
+
+    function formatTime(seconds) {
+      const mins = Math.floor(seconds / 60);
+      const secs = seconds % 60;
+      return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+    }
+
+    // ===== Screen Navigation =====
+    function showScreen(screenId) {
+      document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+      document.getElementById(screenId).classList.add('active');
+      window.scrollTo(0, 0);
+    }
+
+    function showHome() {
+      renderHome();
+      showScreen('home-screen');
+    }
+
+    function showHistory() {
+      renderHistory();
+      showScreen('history-screen');
+    }
+
+    function showAdmin() {
+      renderAdmin();
+      showScreen('admin-screen');
+    }
+
+    // ===== Home Screen =====
+    function renderHome() {
+      const data = getData();
+      const todayKey = getTodayKey();
+      const todayWorkout = data.workouts[todayKey];
+      const container = document.getElementById('today-workout');
+
+      if (todayWorkout) {
+        container.innerHTML = `
+          <div class="card">
+            <div class="workout-name">${todayWorkout.name}</div>
+            <div class="workout-date">${formatDate(todayKey)}</div>
+            ${todayWorkout.brief ? `<div class="daily-brief" style="margin-top: 12px;">"${todayWorkout.brief}"</div>` : ''}
+          </div>
+          <div class="spacer"></div>
+          <button class="btn btn-primary" onclick="startWorkout('${todayKey}')">Start Workout</button>
+        `;
+      } else {
+        container.innerHTML = `
+          <div class="no-workout">
+            <p style="font-size: 18px; margin-bottom: 8px;">No workout scheduled</p>
+            <p>Scott will update this soon.</p>
+          </div>
+        `;
+      }
+    }
+
+    // ===== Active Workout =====
+    let activeWorkout = null;
+    let restTimerInterval = null;
+    let restStartTime = null;
+    let exerciseTimers = {};
+
+    function startWorkout(dateKey) {
+      const data = getData();
+      const workout = data.workouts[dateKey];
+      if (!workout) return;
+
+      activeWorkout = {
+        dateKey,
+        name: workout.name,
+        exercises: workout.exercises.map(ex => ({
+          ...ex,
+          sets: Array(ex.sets).fill(null).map(() => ({
+            completed: false,
+            value: '',
+            weight: ''
+          })),
+          startTime: null,
+          endTime: null
+        })),
+        currentExercise: 0,
+        currentSet: 0
+      };
+
+      exerciseTimers = {};
+      renderWorkout();
+      showScreen('workout-screen');
+    }
+
+    function renderWorkout() {
+      if (!activeWorkout) return;
+
+      // Header
+      document.getElementById('workout-header').innerHTML = `
+        <div class="workout-name">${activeWorkout.name}</div>
+        <div class="workout-date">${formatDate(activeWorkout.dateKey)}</div>
+        <div class="spacer"></div>
+      `;
+
+      // Progress
+      const progressContainer = document.getElementById('workout-progress');
+      const completedExercises = activeWorkout.exercises.filter(ex =>
+        ex.sets.every(s => s.completed)
+      ).length;
+
+      let dotsHtml = '';
+      activeWorkout.exercises.forEach((ex, i) => {
+        const allDone = ex.sets.every(s => s.completed);
+        const isCurrent = i === activeWorkout.currentExercise;
+        let cls = 'progress-dot';
+        if (allDone) cls += ' completed';
+        else if (isCurrent) cls += ' current';
+        dotsHtml += `<div class="${cls}"></div>`;
+      });
+
+      progressContainer.innerHTML = `
+        <span class="progress-text">Exercise ${activeWorkout.currentExercise + 1} of ${activeWorkout.exercises.length}</span>
+        <div class="progress-dots">${dotsHtml}</div>
+      `;
+
+      // Exercise blocks
+      const blocksContainer = document.getElementById('exercise-blocks');
+      blocksContainer.innerHTML = activeWorkout.exercises.map((ex, exIdx) => {
+        const targetText = getTargetText(ex);
+        const isCurrentEx = exIdx === activeWorkout.currentExercise;
+        const exComplete = ex.sets.every(s => s.completed);
+
+        let timeDisplay = '';
+        if (ex.startTime && ex.endTime) {
+          const duration = Math.floor((ex.endTime - ex.startTime) / 1000);
+          timeDisplay = `<div class="exercise-time">Total: ${formatTime(duration)}</div>`;
+        } else if (ex.startTime && !ex.endTime) {
+          timeDisplay = `<div class="exercise-time" id="ex-timer-${exIdx}">In progress...</div>`;
+        }
+
+        const setsHtml = ex.sets.map((set, setIdx) => {
+          const isCurrentSet = isCurrentEx && setIdx === activeWorkout.currentSet;
+          const canEdit = isCurrentEx && (setIdx === activeWorkout.currentSet || set.completed);
+
+          return `
+            <div class="set-row">
+              <div class="set-number ${set.completed ? 'completed' : ''}">${set.completed ? '✓' : setIdx + 1}</div>
+              <div class="set-inputs">
+                ${renderSetInputs(ex, exIdx, setIdx, set, canEdit)}
+              </div>
+              ${renderSetButton(ex, exIdx, setIdx, set, isCurrentSet, canEdit)}
+            </div>
+          `;
+        }).join('');
+
+        // Rest timer (shown after current exercise if resting)
+        let restTimerHtml = '';
+        if (isCurrentEx && restStartTime && activeWorkout.currentSet > 0) {
+          restTimerHtml = `
+            <div class="rest-timer active" id="rest-timer">
+              <div class="rest-label">Rest</div>
+              <div class="rest-time" id="rest-time-display">00:00</div>
+              <button class="btn btn-primary" onclick="startNextSet()">Start Next Set</button>
+            </div>
+          `;
+        }
+
+        return `
+          <div class="exercise-block" style="opacity: ${exComplete && !isCurrentEx ? '0.6' : '1'}">
+            <div class="exercise-header">
+              <div>
+                <div class="exercise-name">${ex.name}</div>
+                <div class="exercise-target">${targetText}</div>
+              </div>
+              ${timeDisplay}
+            </div>
+            ${setsHtml}
+            ${restTimerHtml}
+          </div>
+        `;
+      }).join('');
+
+      // Update finish button
+      const allComplete = activeWorkout.exercises.every(ex => ex.sets.every(s => s.completed));
+      document.getElementById('finish-workout-btn').disabled = !allComplete;
+
+      // Start exercise timer display updates
+      updateExerciseTimerDisplay();
+    }
+
+    function getTargetText(exercise) {
+      switch (exercise.type) {
+        case 'reps':
+          return `${exercise.sets} sets × ${exercise.target} reps`;
+        case 'reps+weight':
+          return `${exercise.sets} sets × ${exercise.target} reps @ ${exercise.targetWeight}kg`;
+        case 'distance':
+          return `${exercise.sets} sets × ${exercise.target}m`;
+        case 'time':
+          return `${exercise.sets} sets (for time)`;
+        default:
+          return `${exercise.sets} sets`;
+      }
+    }
+
+    function renderSetInputs(exercise, exIdx, setIdx, set, canEdit) {
+      const baseAttrs = canEdit && !set.completed ? '' : 'disabled';
+
+      switch (exercise.type) {
+        case 'reps':
+          return `<input type="number" class="set-input" placeholder="${exercise.target} reps"
+                    value="${set.value}" ${baseAttrs}
+                    onchange="updateSetValue(${exIdx}, ${setIdx}, 'value', this.value)">`;
+        case 'reps+weight':
+          return `
+            <input type="number" class="set-input" placeholder="${exercise.target}"
+                   value="${set.value}" ${baseAttrs}
+                   onchange="updateSetValue(${exIdx}, ${setIdx}, 'value', this.value)">
+            <input type="number" class="set-input" placeholder="${exercise.targetWeight}kg"
+                   value="${set.weight}" ${baseAttrs}
+                   onchange="updateSetValue(${exIdx}, ${setIdx}, 'weight', this.value)">
+          `;
+        case 'distance':
+          return `<input type="number" class="set-input" placeholder="${exercise.target}m"
+                    value="${set.value}" ${baseAttrs}
+                    onchange="updateSetValue(${exIdx}, ${setIdx}, 'value', this.value)">`;
+        case 'time':
+          return `<input type="text" class="set-input" placeholder="MM:SS"
+                    value="${set.value}" ${baseAttrs}
+                    onchange="updateSetValue(${exIdx}, ${setIdx}, 'value', this.value)">`;
+        default:
+          return `<input type="text" class="set-input" value="${set.value}" ${baseAttrs}
+                    onchange="updateSetValue(${exIdx}, ${setIdx}, 'value', this.value)">`;
+      }
+    }
+
+    function renderSetButton(exercise, exIdx, setIdx, set, isCurrentSet, canEdit) {
+      if (set.completed) {
+        return `<button class="set-btn" disabled>Done</button>`;
+      }
+      if (isCurrentSet && !restStartTime) {
+        return `<button class="set-btn" onclick="completeSet(${exIdx}, ${setIdx})">Done</button>`;
+      }
+      if (isCurrentSet && restStartTime) {
+        return `<button class="set-btn next" onclick="startNextSet()">Next</button>`;
+      }
+      return `<button class="set-btn" disabled>Done</button>`;
+    }
+
+    function updateSetValue(exIdx, setIdx, field, value) {
+      if (!activeWorkout) return;
+      activeWorkout.exercises[exIdx].sets[setIdx][field] = value;
+    }
+
+    function completeSet(exIdx, setIdx) {
+      if (!activeWorkout) return;
+
+      const exercise = activeWorkout.exercises[exIdx];
+      const set = exercise.sets[setIdx];
+
+      // Start exercise timer on first set
+      if (!exercise.startTime) {
+        exercise.startTime = Date.now();
+      }
+
+      // Mark set complete
+      set.completed = true;
+
+      // Check if this was the last set of the exercise
+      const allSetsComplete = exercise.sets.every(s => s.completed);
+
+      if (allSetsComplete) {
+        // End exercise timer
+        exercise.endTime = Date.now();
+        stopRestTimer();
+
+        // Move to next exercise
+        if (exIdx < activeWorkout.exercises.length - 1) {
+          activeWorkout.currentExercise = exIdx + 1;
+          activeWorkout.currentSet = 0;
+        }
+      } else {
+        // Start rest timer and prepare for next set
+        activeWorkout.currentSet = setIdx + 1;
+        startRestTimer();
+      }
+
+      renderWorkout();
+    }
+
+    function startRestTimer() {
+      stopRestTimer();
+      restStartTime = Date.now();
+
+      restTimerInterval = setInterval(() => {
+        const elapsed = Math.floor((Date.now() - restStartTime) / 1000);
+        const display = document.getElementById('rest-time-display');
+        if (display) {
+          display.textContent = formatTime(elapsed);
+        }
+      }, 100);
+    }
+
+    function stopRestTimer() {
+      if (restTimerInterval) {
+        clearInterval(restTimerInterval);
+        restTimerInterval = null;
+      }
+      restStartTime = null;
+    }
+
+    function startNextSet() {
+      stopRestTimer();
+      renderWorkout();
+    }
+
+    function updateExerciseTimerDisplay() {
+      if (!activeWorkout) return;
+
+      activeWorkout.exercises.forEach((ex, idx) => {
+        if (ex.startTime && !ex.endTime) {
+          const el = document.getElementById(`ex-timer-${idx}`);
+          if (el) {
+            const elapsed = Math.floor((Date.now() - ex.startTime) / 1000);
+            el.textContent = formatTime(elapsed);
+          }
+        }
+      });
+
+      requestAnimationFrame(updateExerciseTimerDisplay);
+    }
+
+    function confirmExitWorkout() {
+      if (confirm('Exit workout? Progress will be lost.')) {
+        stopRestTimer();
+        activeWorkout = null;
+        showHome();
+      }
+    }
+
+    function finishWorkout() {
+      if (!activeWorkout) return;
+      renderSummary();
+      showScreen('complete-screen');
+    }
+
+    // ===== Workout Complete =====
+    function renderSummary() {
+      if (!activeWorkout) return;
+
+      const container = document.getElementById('workout-summary');
+      container.innerHTML = activeWorkout.exercises.map(ex => {
+        const completedSets = ex.sets.filter(s => s.completed).length;
+        let setsDetail = '';
+
+        ex.sets.forEach((set, idx) => {
+          if (set.completed) {
+            let detail = `Set ${idx + 1}: `;
+            if (ex.type === 'reps+weight') {
+              detail += `${set.value || ex.target} reps @ ${set.weight || ex.targetWeight}kg`;
+            } else if (ex.type === 'reps') {
+              detail += `${set.value || ex.target} reps`;
+            } else if (ex.type === 'distance') {
+              detail += `${set.value || ex.target}m`;
+            } else if (ex.type === 'time') {
+              detail += set.value || 'completed';
+            }
+            setsDetail += `<div style="color: #888; font-size: 13px;">${detail}</div>`;
+          }
+        });
+
+        let timeDisplay = '';
+        if (ex.startTime && ex.endTime) {
+          const duration = Math.floor((ex.endTime - ex.startTime) / 1000);
+          timeDisplay = `<div class="summary-time">Block time: ${formatTime(duration)}</div>`;
+        }
+
+        return `
+          <div class="summary-exercise">
+            <div class="summary-exercise-name">${ex.name}</div>
+            <div class="summary-sets">${completedSets}/${ex.sets.length} sets completed</div>
+            ${setsDetail}
+            ${timeDisplay}
+          </div>
+        `;
+      }).join('');
+    }
+
+    function saveAndReturn() {
+      if (!activeWorkout) {
+        showHome();
+        return;
+      }
+
+      const data = getData();
+
+      // Calculate total workout time
+      let totalTime = 0;
+      activeWorkout.exercises.forEach(ex => {
+        if (ex.startTime && ex.endTime) {
+          totalTime += (ex.endTime - ex.startTime);
+        }
+      });
+
+      const completedWorkout = {
+        dateKey: activeWorkout.dateKey,
+        name: activeWorkout.name,
+        completedAt: new Date().toISOString(),
+        totalTime: Math.floor(totalTime / 1000),
+        exercises: activeWorkout.exercises.map(ex => ({
+          name: ex.name,
+          type: ex.type,
+          sets: ex.sets.map(s => ({
+            completed: s.completed,
+            value: s.value,
+            weight: s.weight
+          })),
+          blockTime: ex.startTime && ex.endTime ? Math.floor((ex.endTime - ex.startTime) / 1000) : null
+        }))
+      };
+
+      data.completedWorkouts.unshift(completedWorkout);
+      saveData(data);
+
+      stopRestTimer();
+      activeWorkout = null;
+      showHome();
+    }
+
+    // ===== History =====
+    function renderHistory() {
+      const data = getData();
+      const container = document.getElementById('history-list');
+
+      if (data.completedWorkouts.length === 0) {
+        container.innerHTML = '<div class="no-workout"><p>No completed workouts yet.</p></div>';
+        return;
+      }
+
+      container.innerHTML = data.completedWorkouts.map((workout, idx) => {
+        const exerciseCount = workout.exercises.length;
+        const totalSets = workout.exercises.reduce((sum, ex) => sum + ex.sets.filter(s => s.completed).length, 0);
+
+        return `
+          <div class="history-item" onclick="showHistoryDetail(${idx})">
+            <div class="history-name">${workout.name}</div>
+            <div class="history-date">${formatDate(workout.dateKey)}</div>
+            <div class="history-stats">${exerciseCount} exercises · ${totalSets} sets · ${formatTime(workout.totalTime)}</div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function showHistoryDetail(idx) {
+      const data = getData();
+      const workout = data.completedWorkouts[idx];
+      if (!workout) return;
+
+      const container = document.getElementById('history-detail');
+      container.innerHTML = `
+        <h1>${workout.name}</h1>
+        <p style="color: #888; margin-bottom: 24px;">${formatDate(workout.dateKey)}</p>
+
+        ${workout.exercises.map(ex => {
+          const completedSets = ex.sets.filter(s => s.completed).length;
+          let setsDetail = '';
+
+          ex.sets.forEach((set, setIdx) => {
+            if (set.completed) {
+              let detail = `Set ${setIdx + 1}: `;
+              if (ex.type === 'reps+weight') {
+                detail += `${set.value || '-'} reps @ ${set.weight || '-'}kg`;
+              } else if (ex.type === 'reps') {
+                detail += `${set.value || '-'} reps`;
+              } else if (ex.type === 'distance') {
+                detail += `${set.value || '-'}m`;
+              } else if (ex.type === 'time') {
+                detail += set.value || 'completed';
+              }
+              setsDetail += `<div style="color: #888; font-size: 13px;">${detail}</div>`;
+            }
+          });
+
+          return `
+            <div class="summary-exercise">
+              <div class="summary-exercise-name">${ex.name}</div>
+              <div class="summary-sets">${completedSets}/${ex.sets.length} sets</div>
+              ${setsDetail}
+              ${ex.blockTime ? `<div class="summary-time">Block time: ${formatTime(ex.blockTime)}</div>` : ''}
+            </div>
+          `;
+        }).join('')}
+
+        <div style="margin-top: 24px; padding: 16px; background: #141414; border-radius: 12px;">
+          <div style="color: #888; font-size: 14px;">Total Workout Time</div>
+          <div style="font-size: 24px; font-weight: 700; color: #1abc9c;">${formatTime(workout.totalTime)}</div>
+        </div>
+      `;
+
+      showScreen('history-detail-screen');
+    }
+
+    // ===== Admin Mode =====
+    let adminTapCount = 0;
+    let adminTapTimeout = null;
+
+    document.getElementById('app-title').addEventListener('click', () => {
+      adminTapCount++;
+
+      if (adminTapTimeout) clearTimeout(adminTapTimeout);
+
+      if (adminTapCount >= 3) {
+        adminTapCount = 0;
+        showAdmin();
+      } else {
+        adminTapTimeout = setTimeout(() => {
+          adminTapCount = 0;
+        }, 500);
+      }
+    });
+
+    function renderAdmin() {
+      // Set default date to tomorrow
+      const tomorrow = new Date();
+      tomorrow.setDate(tomorrow.getDate() + 1);
+      document.getElementById('admin-date').value = tomorrow.toISOString().split('T')[0];
+      document.getElementById('admin-name').value = '';
+      document.getElementById('admin-brief').value = '';
+      document.getElementById('admin-exercises').innerHTML = '';
+
+      // Add one empty exercise form
+      addExerciseForm();
+    }
+
+    let exerciseFormCount = 0;
+
+    function addExerciseForm() {
+      const container = document.getElementById('admin-exercises');
+      const formId = exerciseFormCount++;
+
+      const formHtml = `
+        <div class="exercise-form" id="exercise-form-${formId}">
+          <div class="exercise-form-header">
+            <span class="exercise-form-title">Exercise ${container.children.length + 1}</span>
+            <button class="remove-exercise" onclick="removeExerciseForm(${formId})">Remove</button>
+          </div>
+
+          <div class="admin-field">
+            <label class="admin-label">Name</label>
+            <input type="text" class="admin-input ex-name" placeholder="e.g., Wall Balls">
+          </div>
+
+          <div class="admin-field">
+            <label class="admin-label">Type</label>
+            <select class="admin-select ex-type" onchange="updateTargetFields(${formId})">
+              <option value="reps">Reps</option>
+              <option value="reps+weight">Reps + Weight</option>
+              <option value="distance">Distance</option>
+              <option value="time">Time</option>
+            </select>
+          </div>
+
+          <div style="display: flex; gap: 12px;">
+            <div class="admin-field" style="flex: 1;">
+              <label class="admin-label">Sets</label>
+              <input type="number" class="admin-input ex-sets" placeholder="3" value="3">
+            </div>
+            <div class="admin-field" style="flex: 1;" id="target-field-${formId}">
+              <label class="admin-label">Target</label>
+              <input type="number" class="admin-input ex-target" placeholder="10">
+            </div>
+            <div class="admin-field" style="flex: 1; display: none;" id="weight-field-${formId}">
+              <label class="admin-label">Weight (kg)</label>
+              <input type="number" class="admin-input ex-weight" placeholder="20">
+            </div>
+          </div>
+        </div>
+      `;
+
+      container.insertAdjacentHTML('beforeend', formHtml);
+    }
+
+    function removeExerciseForm(formId) {
+      const form = document.getElementById(`exercise-form-${formId}`);
+      if (form) form.remove();
+
+      // Renumber remaining forms
+      const forms = document.querySelectorAll('.exercise-form');
+      forms.forEach((form, idx) => {
+        form.querySelector('.exercise-form-title').textContent = `Exercise ${idx + 1}`;
+      });
+    }
+
+    function updateTargetFields(formId) {
+      const form = document.getElementById(`exercise-form-${formId}`);
+      const type = form.querySelector('.ex-type').value;
+      const targetField = document.getElementById(`target-field-${formId}`);
+      const weightField = document.getElementById(`weight-field-${formId}`);
+      const targetLabel = targetField.querySelector('.admin-label');
+      const targetInput = targetField.querySelector('.ex-target');
+
+      weightField.style.display = type === 'reps+weight' ? 'block' : 'none';
+
+      switch (type) {
+        case 'reps':
+        case 'reps+weight':
+          targetLabel.textContent = 'Target Reps';
+          targetInput.placeholder = '10';
+          targetField.style.display = 'block';
+          break;
+        case 'distance':
+          targetLabel.textContent = 'Distance (m)';
+          targetInput.placeholder = '1000';
+          targetField.style.display = 'block';
+          break;
+        case 'time':
+          targetLabel.textContent = 'Target';
+          targetField.style.display = 'none';
+          break;
+      }
+    }
+
+    function saveAdminWorkout() {
+      const dateKey = document.getElementById('admin-date').value;
+      const name = document.getElementById('admin-name').value.trim();
+      const brief = document.getElementById('admin-brief').value.trim();
+
+      if (!dateKey || !name) {
+        alert('Please enter a date and workout name.');
+        return;
+      }
+
+      const exercises = [];
+      document.querySelectorAll('.exercise-form').forEach(form => {
+        const exName = form.querySelector('.ex-name').value.trim();
+        const exType = form.querySelector('.ex-type').value;
+        const exSets = parseInt(form.querySelector('.ex-sets').value) || 3;
+        const exTarget = parseInt(form.querySelector('.ex-target').value) || null;
+        const exWeight = parseInt(form.querySelector('.ex-weight').value) || null;
+
+        if (exName) {
+          const exercise = {
+            name: exName,
+            type: exType,
+            sets: exSets,
+            target: exTarget
+          };
+
+          if (exType === 'reps+weight' && exWeight) {
+            exercise.targetWeight = exWeight;
+          }
+
+          exercises.push(exercise);
+        }
+      });
+
+      if (exercises.length === 0) {
+        alert('Please add at least one exercise.');
+        return;
+      }
+
+      const data = getData();
+      data.workouts[dateKey] = {
+        name,
+        brief,
+        exercises
+      };
+      saveData(data);
+
+      alert('Workout saved!');
+      showHome();
+    }
+
+    // ===== Seed Data (runs once) =====
+    function seedInitialData() {
+      const data = getData();
+      const seeded = localStorage.getItem('scott_seeded');
+
+      if (!seeded) {
+        // Seed workout for 2026-04-04
+        data.workouts['2026-04-04'] = {
+          name: 'Hyrox Foundation',
+          brief: 'Building that base. Focus on pacing and form today.',
+          exercises: [
+            {
+              name: 'Wall Balls',
+              type: 'reps',
+              sets: 4,
+              target: 25
+            },
+            {
+              name: 'Deadlift',
+              type: 'reps+weight',
+              sets: 3,
+              target: 8,
+              targetWeight: 80
+            },
+            {
+              name: 'Rowing',
+              type: 'distance',
+              sets: 2,
+              target: 500
+            },
+            {
+              name: 'Burpee Broad Jumps',
+              type: 'reps',
+              sets: 3,
+              target: 15
+            },
+            {
+              name: '1km Run',
+              type: 'time',
+              sets: 1,
+              target: null
+            }
+          ]
+        };
+
+        saveData(data);
+        localStorage.setItem('scott_seeded', 'true');
+      }
+    }
+
+    // ===== Init =====
+    seedInitialData();
+    renderHome();
+  </script>
+</body>
+</html>
