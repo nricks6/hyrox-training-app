@@ -498,8 +498,28 @@
   </style>
 </head>
 <body>
+  <!-- Login Screen -->
+  <div id="login-screen" class="screen active">
+    <div style="display: flex; flex-direction: column; justify-content: center; min-height: 80vh;">
+      <h1 style="text-align: center; margin-bottom: 8px;">Scott</h1>
+      <p style="color: #666; font-size: 14px; margin-bottom: 32px; text-align: center;">Your AI Training Partner</p>
+      <div class="card">
+        <div class="admin-field">
+          <label class="admin-label">Password</label>
+          <input type="password" id="login-password" class="admin-input" placeholder="Enter password"
+                 onkeydown="if(event.key==='Enter')login()">
+        </div>
+        <div class="spacer"></div>
+        <button class="btn btn-primary" onclick="login()">Log In</button>
+        <div id="login-error" style="color: #e74c3c; text-align: center; margin-top: 12px; display: none;">
+          Incorrect password
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- Home Screen -->
-  <div id="home-screen" class="screen active">
+  <div id="home-screen" class="screen">
     <h1 class="app-title" id="app-title">Scott</h1>
     <p style="color: #666; font-size: 14px; margin-bottom: 24px;">Your AI Training Partner</p>
 
@@ -603,19 +623,40 @@
   </div>
 
   <script>
-    // ===== Data Management =====
-    const STORAGE_KEY = 'scott_training_data';
-
-    function getData() {
-      const stored = localStorage.getItem(STORAGE_KEY);
-      if (stored) {
-        return JSON.parse(stored);
-      }
-      return { workouts: {}, completedWorkouts: [] };
+    // ===== API Helpers =====
+    async function apiGet(path) {
+      const res = await fetch('/api' + path);
+      if (res.status === 401) { showScreen('login-screen'); return null; }
+      return res.json();
     }
 
-    function saveData(data) {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+    async function apiPost(path, body) {
+      const res = await fetch('/api' + path, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body)
+      });
+      if (res.status === 401) { showScreen('login-screen'); return null; }
+      return res.json();
+    }
+
+    async function login() {
+      const password = document.getElementById('login-password').value;
+      const errorEl = document.getElementById('login-error');
+      errorEl.style.display = 'none';
+
+      const res = await fetch('/api/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password })
+      });
+
+      if (res.ok) {
+        await renderHome();
+        showScreen('home-screen');
+      } else {
+        errorEl.style.display = 'block';
+      }
     }
 
     function getTodayKey() {
@@ -644,13 +685,13 @@
       window.scrollTo(0, 0);
     }
 
-    function showHome() {
-      renderHome();
+    async function showHome() {
+      await renderHome();
       showScreen('home-screen');
     }
 
-    function showHistory() {
-      renderHistory();
+    async function showHistory() {
+      await renderHistory();
       showScreen('history-screen');
     }
 
@@ -660,10 +701,10 @@
     }
 
     // ===== Home Screen =====
-    function renderHome() {
-      const data = getData();
+    async function renderHome() {
       const todayKey = getTodayKey();
-      const todayWorkout = data.workouts[todayKey];
+      const todayWorkout = await apiGet('/workouts/' + todayKey);
+      if (todayWorkout === null) return; // 401 redirect
       const container = document.getElementById('today-workout');
 
       if (todayWorkout) {
@@ -692,9 +733,8 @@
     let restStartTime = null;
     let exerciseTimers = {};
 
-    function startWorkout(dateKey) {
-      const data = getData();
-      const workout = data.workouts[dateKey];
+    async function startWorkout(dateKey) {
+      const workout = await apiGet('/workouts/' + dateKey);
       if (!workout) return;
 
       activeWorkout = {
@@ -957,11 +997,11 @@
       requestAnimationFrame(updateExerciseTimerDisplay);
     }
 
-    function confirmExitWorkout() {
+    async function confirmExitWorkout() {
       if (confirm('Exit workout? Progress will be lost.')) {
         stopRestTimer();
         activeWorkout = null;
-        showHome();
+        await showHome();
       }
     }
 
@@ -1013,13 +1053,11 @@
       }).join('');
     }
 
-    function saveAndReturn() {
+    async function saveAndReturn() {
       if (!activeWorkout) {
-        showHome();
+        await showHome();
         return;
       }
-
-      const data = getData();
 
       // Calculate total workout time
       let totalTime = 0;
@@ -1046,30 +1084,30 @@
         }))
       };
 
-      data.completedWorkouts.unshift(completedWorkout);
-      saveData(data);
+      await apiPost('/completed', completedWorkout);
 
       stopRestTimer();
       activeWorkout = null;
-      showHome();
+      await showHome();
     }
 
     // ===== History =====
-    function renderHistory() {
-      const data = getData();
+    async function renderHistory() {
+      const completedWorkouts = await apiGet('/completed');
+      if (completedWorkouts === null) return; // 401 redirect
       const container = document.getElementById('history-list');
 
-      if (data.completedWorkouts.length === 0) {
+      if (completedWorkouts.length === 0) {
         container.innerHTML = '<div class="no-workout"><p>No completed workouts yet.</p></div>';
         return;
       }
 
-      container.innerHTML = data.completedWorkouts.map((workout, idx) => {
+      container.innerHTML = completedWorkouts.map(workout => {
         const exerciseCount = workout.exercises.length;
         const totalSets = workout.exercises.reduce((sum, ex) => sum + ex.sets.filter(s => s.completed).length, 0);
 
         return `
-          <div class="history-item" onclick="showHistoryDetail(${idx})">
+          <div class="history-item" onclick="showHistoryDetail(${workout.id})">
             <div class="history-name">${workout.name}</div>
             <div class="history-date">${formatDate(workout.dateKey)}</div>
             <div class="history-stats">${exerciseCount} exercises · ${totalSets} sets · ${formatTime(workout.totalTime)}</div>
@@ -1078,9 +1116,8 @@
       }).join('');
     }
 
-    function showHistoryDetail(idx) {
-      const data = getData();
-      const workout = data.completedWorkouts[idx];
+    async function showHistoryDetail(id) {
+      const workout = await apiGet('/completed/' + id);
       if (!workout) return;
 
       const container = document.getElementById('history-detail');
@@ -1247,7 +1284,7 @@
       }
     }
 
-    function saveAdminWorkout() {
+    async function saveAdminWorkout() {
       const dateKey = document.getElementById('admin-date').value;
       const name = document.getElementById('admin-name').value.trim();
       const brief = document.getElementById('admin-brief').value.trim();
@@ -1286,71 +1323,24 @@
         return;
       }
 
-      const data = getData();
-      data.workouts[dateKey] = {
-        name,
-        brief,
-        exercises
-      };
-      saveData(data);
+      await apiPost('/workouts', { dateKey, name, brief, exercises });
 
       alert('Workout saved!');
-      showHome();
-    }
-
-    // ===== Seed Data (runs once) =====
-    function seedInitialData() {
-      const data = getData();
-      const seeded = localStorage.getItem('scott_seeded');
-
-      if (!seeded) {
-        // Seed workout for 2026-04-04
-        data.workouts['2026-04-04'] = {
-          name: 'Hyrox Foundation',
-          brief: 'Building that base. Focus on pacing and form today.',
-          exercises: [
-            {
-              name: 'Wall Balls',
-              type: 'reps',
-              sets: 4,
-              target: 25
-            },
-            {
-              name: 'Deadlift',
-              type: 'reps+weight',
-              sets: 3,
-              target: 8,
-              targetWeight: 80
-            },
-            {
-              name: 'Rowing',
-              type: 'distance',
-              sets: 2,
-              target: 500
-            },
-            {
-              name: 'Burpee Broad Jumps',
-              type: 'reps',
-              sets: 3,
-              target: 15
-            },
-            {
-              name: '1km Run',
-              type: 'time',
-              sets: 1,
-              target: null
-            }
-          ]
-        };
-
-        saveData(data);
-        localStorage.setItem('scott_seeded', 'true');
-      }
+      await showHome();
     }
 
     // ===== Init =====
-    seedInitialData();
-    renderHome();
+    async function init() {
+      const res = await fetch('/api/auth');
+      if (res.ok) {
+        await renderHome();
+        showScreen('home-screen');
+      } else {
+        showScreen('login-screen');
+      }
+    }
+
+    init();
   </script>
 </body>
 </html>
