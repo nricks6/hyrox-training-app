@@ -49,6 +49,11 @@ function getSessionToken(): string {
   return createHmac("sha256", password).update("authenticated").digest("hex");
 }
 
+function safeParse(s: unknown): unknown[] {
+  if (!s || s === 'undefined' || s === 'null') return [];
+  try { return JSON.parse(s as string); } catch { return []; }
+}
+
 function checkAuth(req: VercelRequest): boolean {
   const cookies = req.headers.cookie;
   if (!cookies) return false;
@@ -107,7 +112,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         dateKey: row.date_key,
         name: row.name,
         brief: row.brief,
-        blocks: JSON.parse(row.exercises as string),
+        blocks: safeParse(row.exercises),
       }));
       return res.json(workouts);
     }
@@ -142,7 +147,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         dateKey: row.date_key,
         name: row.name,
         brief: row.brief,
-        blocks: JSON.parse(row.exercises as string),
+        blocks: safeParse(row.exercises),
       });
     }
 
@@ -157,7 +162,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         name: row.name,
         completedAt: row.completed_at,
         totalTime: row.total_time,
-        blocks: JSON.parse(row.exercises as string),
+        blocks: safeParse(row.exercises),
       }));
       return res.json(workouts);
     }
@@ -196,7 +201,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         name: row.name,
         completedAt: row.completed_at,
         totalTime: row.total_time,
-        blocks: JSON.parse(row.exercises as string),
+        blocks: safeParse(row.exercises),
       });
     }
 
