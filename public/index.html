@@ -44,6 +44,7 @@
     h2 { font-size: 18px; font-weight: 600; color: var(--text-secondary); }
     .subtitle { font-size: 14px; color: var(--text-secondary); margin-top: 2px; }
     .home-header { display: flex; justify-content: space-between; align-items: flex-start; }
+    .phase-badge { display: inline-flex; align-items: center; gap: 6px; background: var(--accent-dim); border: 1px solid rgba(26,188,156,0.3); color: var(--accent); font-size: 12px; font-weight: 600; letter-spacing: 0.4px; padding: 4px 10px; border-radius: 20px; margin-top: 6px; text-transform: uppercase; }
     .refresh-btn { background: none; border: none; color: var(--text-secondary); padding: 8px; cursor: pointer; border-radius: 50%; transition: color 0.2s, background 0.2s; margin-top: 4px; }
     .refresh-btn:active { background: var(--accent-dim); color: var(--accent); }
     .refresh-btn.spinning svg { animation: spin 0.6s ease-in-out; }
@@ -210,6 +211,7 @@
       <div>
         <h1>Hyrox</h1>
         <div class="subtitle">Training Partner</div>
+        <div class="phase-badge" id="phase-badge">Loading...</div>
       </div>
       <button class="refresh-btn" id="refresh-btn" onclick="refreshHome()" aria-label="Refresh">
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
@@ -287,6 +289,28 @@ function fmtTime(s) {
   return `${String(m).padStart(2,'0')}:${String(sec).padStart(2,'0')}`;
 }
 function todayKey() { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; }
+
+function getTrainingWeekInfo() {
+  // Program start: Monday, April 7, 2026 (Week 1)
+  const start = new Date('2026-04-07T00:00:00');
+  const today = new Date();
+  const daysSinceStart = Math.floor((today - start) / (1000 * 60 * 60 * 24));
+  const week = Math.max(1, Math.min(26, Math.floor(daysSinceStart / 7) + 1));
+  let phase, phaseName;
+  if (week <= 8)        { phase = 1; phaseName = 'General Prep'; }
+  else if (week <= 18) { phase = 2; phaseName = 'Specific Prep'; }
+  else if (week <= 23) { phase = 3; phaseName = 'Race Prep'; }
+  else                  { phase = 4; phaseName = 'Taper'; }
+  const isDeload = (week === 4 || week === 8 || week === 12 || week === 16 || week === 21);
+  return { week, phase, phaseName, isDeload };
+}
+
+function updatePhaseBadge() {
+  const { week, phase, phaseName, isDeload } = getTrainingWeekInfo();
+  const el = $('phase-badge');
+  if (!el) return;
+  el.textContent = `Phase ${phase} · Week ${week}${isDeload ? ' · Deload' : ''}`;
+}
 function $(id) { return document.getElementById(id); }
 
 // ===== API =====
@@ -315,12 +339,12 @@ async function doLogin() {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ password: pw })
   });
-  if (res.ok) { await renderHome(); go('home'); }
+  if (res.ok) { await renderHome(); go('home'); updatePhaseBadge(); }
   else { $('login-error').style.display = 'block'; }
 }
 
 // ===== HOME =====
-async function goHome() { await renderHome(); go('home'); }
+async function goHome() { await renderHome(); go('home'); updatePhaseBadge(); }
 
 async function renderHome() {
   const [data, allWorkouts] = await Promise.all([
