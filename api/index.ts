@@ -49,6 +49,7 @@ function getSessionToken(): string {
   return createHmac("sha256", password).update("authenticated").digest("hex");
 }
 
+// DB column is named 'blocks' (created by original schema)
 function safeParse(s: unknown): unknown[] {
   if (!s || s === 'undefined' || s === 'null') return [];
   try { return JSON.parse(s as string); } catch { return []; }
@@ -112,7 +113,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         dateKey: row.date_key,
         name: row.name,
         brief: row.brief,
-        blocks: safeParse(row.exercises),
+        blocks: safeParse(row.blocks ?? row.exercises),
       }));
       return res.json(workouts);
     }
@@ -120,14 +121,23 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     // POST /api/workouts — save a scheduled workout
     if (path === "/api/workouts" && req.method === "POST") {
       const { dateKey, name, brief, blocks } = req.body;
-      if (!dateKey || !name || !blocks) {
-        return res.status(400).json({ error: "dateKey, name, and blocks required" });
+      if (!dateKey || !name) {
+        return res.status(400).json({ error: "dateKey and name required" });
       }
-      await db.execute({
-        sql: `INSERT INTO workouts (date_key, name, brief, exercises) VALUES (?, ?, ?, ?)
-              ON CONFLICT(date_key) DO UPDATE SET name=excluded.name, brief=excluded.brief, exercises=excluded.exercises`,
-        args: [dateKey, name, brief || "", JSON.stringify(blocks)],
-      });
+      // Try blocks column first (actual DB schema), fall back to exercises
+      try {
+        await db.execute({
+          sql: `INSERT INTO workouts (date_key, name, brief, blocks) VALUES (?, ?, ?, ?)
+                ON CONFLICT(date_key) DO UPDATE SET name=excluded.name, brief=excluded.brief, blocks=excluded.blocks`,
+          args: [dateKey, name, brief || "", JSON.stringify(blocks ?? [])],
+        });
+      } catch {
+        await db.execute({
+          sql: `INSERT INTO workouts (date_key, name, brief, exercises) VALUES (?, ?, ?, ?)
+                ON CONFLICT(date_key) DO UPDATE SET name=excluded.name, brief=excluded.brief, exercises=excluded.exercises`,
+          args: [dateKey, name, brief || "", JSON.stringify(blocks ?? [])],
+        });
+      }
       return res.json({ ok: true });
     }
 
@@ -147,7 +157,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         dateKey: row.date_key,
         name: row.name,
         brief: row.brief,
-        blocks: safeParse(row.exercises),
+        blocks: safeParse(row.blocks ?? row.exercises),
       });
     }
 
