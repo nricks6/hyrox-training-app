@@ -107,21 +107,21 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         dateKey: row.date_key,
         name: row.name,
         brief: row.brief,
-        exercises: JSON.parse(row.exercises as string),
+        blocks: JSON.parse(row.exercises as string),
       }));
       return res.json(workouts);
     }
 
     // POST /api/workouts — save a scheduled workout
     if (path === "/api/workouts" && req.method === "POST") {
-      const { dateKey, name, brief, exercises } = req.body;
-      if (!dateKey || !name || !exercises) {
-        return res.status(400).json({ error: "dateKey, name, and exercises required" });
+      const { dateKey, name, brief, blocks } = req.body;
+      if (!dateKey || !name || !blocks) {
+        return res.status(400).json({ error: "dateKey, name, and blocks required" });
       }
       await db.execute({
         sql: `INSERT INTO workouts (date_key, name, brief, exercises) VALUES (?, ?, ?, ?)
               ON CONFLICT(date_key) DO UPDATE SET name=excluded.name, brief=excluded.brief, exercises=excluded.exercises`,
-        args: [dateKey, name, brief || "", JSON.stringify(exercises)],
+        args: [dateKey, name, brief || "", JSON.stringify(blocks)],
       });
       return res.json({ ok: true });
     }
@@ -142,7 +142,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         dateKey: row.date_key,
         name: row.name,
         brief: row.brief,
-        exercises: JSON.parse(row.exercises as string),
+        blocks: JSON.parse(row.exercises as string),
       });
     }
 
@@ -157,23 +157,23 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         name: row.name,
         completedAt: row.completed_at,
         totalTime: row.total_time,
-        exercises: JSON.parse(row.exercises as string),
+        blocks: JSON.parse(row.exercises as string),
       }));
       return res.json(workouts);
     }
 
     // POST /api/completed — save a completed workout
     if (path === "/api/completed" && req.method === "POST") {
-      const { dateKey, name, completedAt, totalTime, exercises } = req.body;
-      if (!dateKey || !name || !completedAt || totalTime == null || !exercises) {
+      const { dateKey, name, completedAt, totalTime, blocks } = req.body;
+      if (!dateKey || !name || !completedAt || totalTime == null || !blocks) {
         return res
           .status(400)
-          .json({ error: "dateKey, name, completedAt, totalTime, and exercises required" });
+          .json({ error: "dateKey, name, completedAt, totalTime, and blocks required" });
       }
       const result = await db.execute({
         sql: `INSERT INTO completed_workouts (date_key, name, completed_at, total_time, exercises)
               VALUES (?, ?, ?, ?, ?)`,
-        args: [dateKey, name, completedAt, totalTime, JSON.stringify(exercises)],
+        args: [dateKey, name, completedAt, totalTime, JSON.stringify(blocks)],
       });
       return res.json({ ok: true, id: Number(result.lastInsertRowid) });
     }
@@ -196,7 +196,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         name: row.name,
         completedAt: row.completed_at,
         totalTime: row.total_time,
-        exercises: JSON.parse(row.exercises as string),
+        blocks: JSON.parse(row.exercises as string),
       });
     }
 
