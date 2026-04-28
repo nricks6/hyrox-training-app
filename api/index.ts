@@ -17,13 +17,14 @@ let dbReady = false;
 async function ensureDb() {
   if (dbReady) return;
   const db = getDb();
+  // Create tables if they don't exist
   await db.batch([
     {
       sql: `CREATE TABLE IF NOT EXISTS workouts (
         date_key TEXT PRIMARY KEY,
         name TEXT NOT NULL,
         brief TEXT DEFAULT '',
-        exercises TEXT NOT NULL,
+        blocks TEXT DEFAULT '[]',
         created_at TEXT DEFAULT (datetime('now'))
       )`,
       args: [],
@@ -35,12 +36,19 @@ async function ensureDb() {
         name TEXT NOT NULL,
         completed_at TEXT NOT NULL,
         total_time INTEGER NOT NULL,
-        exercises TEXT NOT NULL,
+        blocks TEXT DEFAULT '[]',
         created_at TEXT DEFAULT (datetime('now'))
       )`,
       args: [],
     },
   ]);
+  // Schema migrations — add columns that may be missing from old schema
+  for (const col of ["blocks", "exercises"]) {
+    try { await db.execute(`ALTER TABLE workouts ADD COLUMN ${col} TEXT DEFAULT '[]'`); } catch {}
+    try { await db.execute(`ALTER TABLE completed_workouts ADD COLUMN ${col} TEXT DEFAULT '[]'`); } catch {}
+  }
+  // Backfill: copy exercises → blocks where blocks is null/undefined
+  await db.execute(`UPDATE workouts SET blocks = exercises WHERE (blocks IS NULL OR blocks = '' OR blocks = 'undefined') AND exercises IS NOT NULL AND exercises != '' AND exercises != 'undefined'`);
   dbReady = true;
 }
 
@@ -124,20 +132,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       if (!dateKey || !name) {
         return res.status(400).json({ error: "dateKey and name required" });
       }
-      // Try blocks column first (actual DB schema), fall back to exercises
-      try {
-        await db.execute({
-          sql: `INSERT INTO workouts (date_key, name, brief, blocks) VALUES (?, ?, ?, ?)
-                ON CONFLICT(date_key) DO UPDATE SET name=excluded.name, brief=excluded.brief, blocks=excluded.blocks`,
-          args: [dateKey, name, brief || "", JSON.stringify(blocks ?? [])],
-        });
-      } catch {
-        await db.execute({
-          sql: `INSERT INTO workouts (date_key, name, brief, exercises) VALUES (?, ?, ?, ?)
-                ON CONFLICT(date_key) DO UPDATE SET name=excluded.name, brief=excluded.brief, exercises=excluded.exercises`,
-          args: [dateKey, name, brief || "", JSON.stringify(blocks ?? [])],
-        });
-      }
+      await db.execute({
+        sql: `INSERT INTO workouts (date_key, name, brief, blocks) VALUES (?, ?, ?, ?)
+              ON CONFLICT(date_key) DO UPDATE SET name=excluded.name, brief=excluded.brief, blocks=excluded.blocks`,
+        args: [dateKey, name, brief || "", JSON.stringify(blocks ?? [])],
+      });
       return res.json({ ok: true });
     }
 
@@ -180,15 +179,15 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     // POST /api/completed — save a completed workout
     if (path === "/api/completed" && req.method === "POST") {
       const { dateKey, name, completedAt, totalTime, blocks } = req.body;
-      if (!dateKey || !name || !completedAt || totalTime == null || !blocks) {
+      if (!dateKey || !name || !completedAt || totalTime == null) {
         return res
           .status(400)
-          .json({ error: "dateKey, name, completedAt, totalTime, and blocks required" });
+          .json({ error: "dateKey, name, completedAt, totalTime required" });
       }
       const result = await db.execute({
-        sql: `INSERT INTO completed_workouts (date_key, name, completed_at, total_time, exercises)
+        sql: `INSERT INTO completed_workouts (date_key, name, completed_at, total_time, blocks)
               VALUES (?, ?, ?, ?, ?)`,
-        args: [dateKey, name, completedAt, totalTime, JSON.stringify(blocks)],
+        args: [dateKey, name, completedAt, totalTime, JSON.stringify(blocks ?? [])],
       });
       return res.json({ ok: true, id: Number(result.lastInsertRowid) });
     }
