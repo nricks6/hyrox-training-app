@@ -46,6 +46,13 @@
     .home-header { display: flex; justify-content: space-between; align-items: flex-start; }
     .phase-badge { display: inline-flex; align-items: center; gap: 6px; background: var(--accent-dim); border: 1px solid rgba(26,188,156,0.3); color: var(--accent); font-size: 12px; font-weight: 600; letter-spacing: 0.4px; padding: 4px 10px; border-radius: 20px; margin-top: 6px; text-transform: uppercase; }
     .refresh-btn { background: none; border: none; color: var(--text-secondary); padding: 8px; cursor: pointer; border-radius: 50%; transition: color 0.2s, background 0.2s; margin-top: 4px; }
+    .zone-chips { display: flex; gap: 8px; flex-wrap: wrap; margin: 10px 0 14px; }
+    .zone-chip { display: inline-flex; flex-direction: column; align-items: center; justify-content: center; padding: 8px 12px; border-radius: 10px; min-width: 80px; flex: 1; }
+    .zone-chip .chip-label { font-size: 10px; font-weight: 600; letter-spacing: 0.5px; text-transform: uppercase; opacity: 0.75; margin-bottom: 3px; }
+    .zone-chip .chip-value { font-size: 14px; font-weight: 700; }
+    .zone-chip.z2 { background: rgba(26,188,156,0.12); border: 1px solid rgba(26,188,156,0.3); color: var(--accent); }
+    .zone-chip.z3 { background: rgba(230,126,34,0.12); border: 1px solid rgba(230,126,34,0.3); color: #e67e22; }
+    .zone-chip.z4 { background: rgba(231,76,60,0.12); border: 1px solid rgba(231,76,60,0.3); color: var(--danger); }
     .refresh-btn:active { background: var(--accent-dim); color: var(--accent); }
     .refresh-btn.spinning svg { animation: spin 0.6s ease-in-out; }
     @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
@@ -599,7 +606,9 @@ function renderIntervalBlock(block, bi, isCurrent, isDone) {
   if (isCurrent && !block.timerRunning && !isDone) {
     // Show start button
     const exerciseList = block.exercises.map(e => `<div style="font-size:14px;color:var(--text-secondary);padding:4px 0;">${esc(e.name)} — ${getTargetText(e)}</div>`).join('');
+    const zoneChips = block.blockType === 'cardio' ? getZoneChips(block) : '';
     contentHtml = `
+      ${zoneChips}
       <div style="margin-bottom:14px;">${exerciseList}</div>
       <button class="btn btn-primary" onclick="startIntervalBlock(${bi})">${getStartLabel(block.blockType)}</button>
     `;
@@ -617,6 +626,21 @@ function renderIntervalBlock(block, bi, isCurrent, isDone) {
       ${timerHtml}
     </div>
     ${contentHtml}
+  </div>`;
+}
+
+function getZoneChips(block) {
+  // Pull zone info from first exercise that has it
+  const ex = (block.exercises || []).find(e => e.hrZone);
+  if (!ex) return '';
+  const zone = ex.hrZone || '';
+  const pace = ex.targetPace || '';
+  const bpm  = ex.targetBpm  || '';
+  const cls  = zone.includes('2') ? 'z2' : zone.includes('3') || zone.toLowerCase().includes('tempo') ? 'z3' : 'z4';
+  return `<div class="zone-chips">
+    <div class="zone-chip ${cls}"><span class="chip-label">Zone</span><span class="chip-value">${esc(zone)}</span></div>
+    ${pace ? `<div class="zone-chip ${cls}"><span class="chip-label">Pace</span><span class="chip-value">${esc(pace)}</span></div>` : ''}
+    ${bpm  ? `<div class="zone-chip ${cls}"><span class="chip-label">Heart Rate</span><span class="chip-value">${esc(bpm)}</span></div>`  : ''}
   </div>`;
 }
 
@@ -677,6 +701,7 @@ function renderIntervalTimerUI(block, bi) {
       <div class="timer-big" id="interval-timer-${bi}">00:00</div>
       <div class="timer-label">${block.exercises.map(e => e.name).join(', ')}</div>
     </div>
+    ${getZoneChips(block)}
     <div style="display:flex;gap:8px;margin-bottom:10px;">
       <input type="number" class="set-input" id="cardio-dist-${bi}" placeholder="Distance (m)" style="flex:1;">
       <input type="text" class="set-input" id="cardio-time-${bi}" placeholder="MM:SS" style="flex:1;">
